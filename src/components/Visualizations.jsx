@@ -75,6 +75,7 @@ const TriHardVisualizations = () => {
                   topScore: _.maxBy(members, 'Total Score')['Total Score']
                 };
               })
+              .orderBy(['totalScore'], ['desc'])
               .value();
             setTeamStats(teamData);
             
@@ -128,23 +129,28 @@ const TriHardVisualizations = () => {
   );
 
   // Component for Average Score Per Team
-  const AverageScoreChart = () => (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">Average Score Per Team</h2>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={teamStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="teamName" />
-            <YAxis />
-            <Tooltip formatter={(value) => [`${value.toFixed(1)} points`, 'Average Score']} />
-            <Legend />
-            <Bar dataKey="avgScore" name="Average Score Per Member" fill="#82ca9d" />
-          </BarChart>
-        </ResponsiveContainer>
+  const AverageScoreChart = () => {
+    // Create a sorted copy for average scores
+    const sortedByAvg = _.orderBy(teamStats, ['avgScore'], ['desc']);
+    
+    return (
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Average Score Per Team</h2>
+        <div style={{ width: '100%', height: '400px' }}>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={sortedByAvg} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="teamName" />
+              <YAxis />
+              <Tooltip formatter={(value) => [`${value.toFixed(1)} points`, 'Average Score']} />
+              <Legend />
+              <Bar dataKey="avgScore" name="Average Score Per Member" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Component for Team Membership Distribution
   const TeamMembershipChart = () => (
@@ -176,33 +182,61 @@ const TriHardVisualizations = () => {
   );
 
   // Component for Top Performers
-  const TopPerformersChart = () => (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">Top 10 Performers</h2>
-      <div className="h-96">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            data={topPerformers}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis dataKey="name" type="category" width={100} />
-            <Tooltip 
-              formatter={(value, name, props) => [
-                `${value} points`, 
-                name === 'score' ? 'Score' : 'Minutes'
-              ]}
-              labelFormatter={(label) => `${label} (${topPerformers.find(p => p.name === label)?.team || 'Unknown team'})`}
-            />
-            <Legend />
-            <Bar dataKey="score" name="Score" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
+  const TopPerformersChart = () => {
+    // Create custom bars for the legend to show team colors
+    const renderCustomizedLegend = () => {
+      const teams = _.uniqBy(topPerformers, 'team').map(p => p.team);
+      
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+          {teams.map((team) => (
+            <div key={team} style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
+              <div style={{ 
+                width: '15px', 
+                height: '15px', 
+                backgroundColor: TEAM_COLORS[team] || '#8884d8',
+                marginRight: '5px'
+              }} />
+              <span>{team}</span>
+            </div>
+          ))}
+        </div>
+      );
+    };
+    
+    return (
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Top 10 Performers</h2>
+        <div style={{ width: '100%', height: '500px' }}>
+          <ResponsiveContainer width="100%" height={450}>
+            <BarChart
+              data={topPerformers}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis dataKey="name" type="category" width={100} />
+              <Tooltip 
+                formatter={(value, name) => [`${value} points`, name]}
+                labelFormatter={(name) => {
+                  const performer = topPerformers.find(p => p.name === name);
+                  return `${name} (${performer?.team || 'Unknown team'})`;
+                }}
+              />
+              {/* Use custom shape for the bars to color by team */}
+              <Bar dataKey="score" name="Score">
+                {topPerformers.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.team] || '#8884d8'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          {renderCustomizedLegend()}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Component for Team Radar Comparison
   const TeamRadarChart = () => {
