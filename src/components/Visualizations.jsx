@@ -30,16 +30,16 @@ const TriHardVisualizations = () => {
 
   // Colors for teams
   const TEAM_COLORS = {
-    'team1': '#8884d8',
-    'team2': '#82ca9d',
-    'team3': '#ffc658',
-    'team4': '#ff8042',
-    'team5': '#0088fe',
-    'team6': '#00C49F'
+    "Slayin' Peaches": '#FFB81C',
+    'Goat Guavas': '#9DC183',
+    "Flexin' Figs": '#D8A1C4',
+    'Power Plums': '#8E4585',
+    'Sigma Mangoes': '#FF8C00',
+    'Goat Grapes': '#6F2DA8'
   };
 
   // COLORS array for pie charts, radar charts
-  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00C49F'];
+  const COLORS = ['#FFB81C', '#9DC183', '#D8A1C4', '#8E4585', '#FF8C00', '#6F2DA8'];
 
   useEffect(() => {
     const fetchData = async () => {
