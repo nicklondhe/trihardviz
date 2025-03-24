@@ -19,7 +19,8 @@ const TriHardVisualizations = () => {
   const [teamStats, setTeamStats] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('teamComparison');
+  const [activeMainTab, setActiveMainTab] = useState('currentWeek');
+  const [activeSubTab, setActiveSubTab] = useState('teamComparison');
 
   // Colors for teams
   const TEAM_COLORS = {
@@ -250,45 +251,89 @@ const TriHardVisualizations = () => {
     );
   };
 
+  // Two-level tab navigation with just current week tabs implemented
+  const TwoLevelTabNavigation = ({ activeMainTab, setActiveMainTab, activeSubTab, setActiveSubTab }) => {
+    const mainTabs = [
+      { id: 'currentWeek', label: 'Current Week' },
+      { id: 'trends', label: 'Trends & Comparisons' }
+    ];
+    
+    const subTabs = {
+      currentWeek: [
+        { id: 'teamComparison', label: 'Team Scores' },
+        { id: 'averageScores', label: 'Average Scores' },
+        { id: 'topPerformers', label: 'Top Performers' },
+        { id: 'distribution', label: 'Score Distribution' }
+      ],
+      trends: [] // Empty for now, will populate later
+    };
+
+    return (
+      <div className="mb-6 w-full">
+      {/* Main tabs - full width */}
+      <div className="grid grid-cols-2 w-full bg-gray-100 p-2 rounded-t-lg">
+        {mainTabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setActiveMainTab(tab.id);
+              if (subTabs[tab.id].length > 0) {
+                setActiveSubTab(subTabs[tab.id][0].id);
+              }
+            }}
+            className={activeMainTab === tab.id ? 'active-tab' : 'inactive-tab'}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* Sub tabs - full width with clear highlighting */}
+      {subTabs[activeMainTab].length > 0 && (
+        <div className="grid grid-cols-4 w-full bg-white border-b border-gray-300">
+          {subTabs[activeMainTab].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSubTab(tab.id)}
+              className={activeSubTab === tab.id ? 'active-tab' : 'inactive-tab'}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+    );
+  };
+
   if (loading) {
     return <div className="p-4">Loading data...</div>;
   } else {
     return (
         <div className="p-4">
-        <h1 className="text-2xl font-bold mb-6">TriHard Club Leaderboard Visualizations</h1>
         
-        <div className="flex mb-6 overflow-x-auto">
-            <button 
-            className={`px-4 py-2 mr-2 rounded-md ${activeTab === 'teamComparison' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            onClick={() => setActiveTab('teamComparison')}
-            >
-            Team Scores
-            </button>
-            <button 
-            className={`px-4 py-2 mr-2 rounded-md ${activeTab === 'averageScores' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            onClick={() => setActiveTab('averageScores')}
-            >
-            Average Scores
-            </button>
-            <button 
-            className={`px-4 py-2 mr-2 rounded-md ${activeTab === 'topPerformers' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            onClick={() => setActiveTab('topPerformers')}
-            >
-            Top Performers
-            </button>
-            <button 
-            className={`px-4 py-2 mr-2 rounded-md ${activeTab === 'distribution' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            onClick={() => setActiveTab('distribution')}
-            >
-            Score Distribution
-            </button>
-        </div>
-        
+       <TwoLevelTabNavigation 
+          activeMainTab={activeMainTab}
+          setActiveMainTab={setActiveMainTab}
+          activeSubTab={activeSubTab}
+          setActiveSubTab={setActiveSubTab}
+        />
+
         <div className="border rounded-lg p-4 bg-white shadow">
-            {activeTab === 'teamComparison' && <TeamComparisonChart />}
-            {activeTab === 'averageScores' && <AverageScoreChart />}
-            {activeTab === 'topPerformers' && <TopPerformersChart />}
-            {activeTab === 'distribution' && <ScoreDistributionChart />}
+          {activeMainTab === 'currentWeek' && (
+            <>
+              {activeSubTab === 'teamComparison' && <TeamComparisonChart />}
+              {activeSubTab === 'averageScores' && <AverageScoreChart />}
+              {activeSubTab === 'topPerformers' && <TopPerformersChart />}
+              {activeSubTab === 'distribution' && <ScoreDistributionChart />}
+            </>
+          )}
+          
+          {activeMainTab === 'trends' && (
+            <div className="p-8 text-center text-gray-500">
+              Trend visualizations coming soon!
+            </div>
+          )}
         </div>
 
         <div className="mt-6 text-sm text-gray-600">

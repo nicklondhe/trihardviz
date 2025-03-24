@@ -11,3 +11,24 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+button {
+  background-color: #f3f4f6; /* Default gray background */
+  color: #4b5563; /* Default text color */
+}
+
+button.active {
+  background-color: #3b82f6; /* Blue for active tab */
+  color: white;
+}
+
+.active-tab {
+  background-color: #3b82f6;
+  color: white;
+  font-weight: bold;
+}
+
+.inactive-tab {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
