@@ -4,13 +4,6 @@ import {
   CartesianGrid,
   Cell,
   Legend,
-  Pie,
-  PieChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -37,9 +30,6 @@ const TriHardVisualizations = () => {
     'Sigma Mangoes': '#FF8C00',
     'Goat Grapes': '#6F2DA8'
   };
-
-  // COLORS array for pie charts, radar charts
-  const COLORS = ['#FFB81C', '#9DC183', '#D8A1C4', '#8E4585', '#FF8C00', '#6F2DA8'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -152,35 +142,6 @@ const TriHardVisualizations = () => {
     );
   };
 
-  // Component for Team Membership Distribution
-  const TeamMembershipChart = () => (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">Team Membership Distribution</h2>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height={400}>
-          <PieChart>
-            <Pie
-              data={teamStats}
-              cx="50%"
-              cy="50%"
-              labelLine={true}
-              label={({ teamName, percent }) => `${teamName} (${(percent * 100).toFixed(0)}%)`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="memberCount"
-              nameKey="teamName"
-            >
-              {teamStats.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => [`${value} members`, 'Count']} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-
   // Component for Top Performers
   const TopPerformersChart = () => {
     // Create custom bars for the legend to show team colors
@@ -233,39 +194,6 @@ const TriHardVisualizations = () => {
             </BarChart>
           </ResponsiveContainer>
           {renderCustomizedLegend()}
-        </div>
-      </div>
-    );
-  };
-
-  // Component for Team Radar Comparison
-  const TeamRadarChart = () => {
-    // Prepare data for radar chart
-    const radarData = teamStats.map(team => ({
-      teamName: team.teamName,
-      'Total Score': team.totalScore / 500, // Normalize to make the chart readable
-      'Average Score': team.avgScore,
-      'Member Count': team.memberCount,
-      'Top Score': team.topScore / 100 // Normalize to make the chart readable
-    }));
-
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Team Performance Radar</h2>
-        <div className="h-96">
-          <ResponsiveContainer width="100%" height={400}>
-            <RadarChart outerRadius={90} data={radarData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="teamName" />
-              <PolarRadiusAxis />
-              <Radar name="Total Score (scaled)" dataKey="Total Score" stroke="#8884d8" fill="#8884d8" fillOpacity={0.2} />
-              <Radar name="Average Score" dataKey="Average Score" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.2} />
-              <Radar name="Member Count" dataKey="Member Count" stroke="#ffc658" fill="#ffc658" fillOpacity={0.2} />
-              <Radar name="Top Score (scaled)" dataKey="Top Score" stroke="#ff8042" fill="#ff8042" fillOpacity={0.2} />
-              <Legend />
-              <Tooltip />
-            </RadarChart>
-          </ResponsiveContainer>
         </div>
       </div>
     );
@@ -346,18 +274,6 @@ const TriHardVisualizations = () => {
             >
             Score Distribution
             </button>
-            <button 
-            className={`px-4 py-2 mr-2 rounded-md ${activeTab === 'membership' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            onClick={() => setActiveTab('membership')}
-            >
-            Team Membership
-            </button>
-            <button 
-            className={`px-4 py-2 rounded-md ${activeTab === 'radar' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            onClick={() => setActiveTab('radar')}
-            >
-            Team Radar
-            </button>
         </div>
         
         <div className="border rounded-lg p-4 bg-white shadow">
@@ -365,8 +281,6 @@ const TriHardVisualizations = () => {
             {activeTab === 'averageScores' && <AverageScoreChart />}
             {activeTab === 'topPerformers' && <TopPerformersChart />}
             {activeTab === 'distribution' && <ScoreDistributionChart />}
-            {activeTab === 'membership' && <TeamMembershipChart />}
-            {activeTab === 'radar' && <TeamRadarChart />}
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
