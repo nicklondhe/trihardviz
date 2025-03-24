@@ -111,7 +111,11 @@ const TriHardVisualizations = () => {
             <YAxis />
             <Tooltip formatter={(value) => [`${value} points`, 'Total Score']} />
             <Legend />
-            <Bar dataKey="totalScore" name="Team Total Score" fill="#8884d8" />
+            <Bar dataKey="totalScore" name="Team Total Score">
+              {teamStats.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#8884d8'} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -134,7 +138,11 @@ const TriHardVisualizations = () => {
               <YAxis />
               <Tooltip formatter={(value) => [`${value.toFixed(1)} points`, 'Average Score']} />
               <Legend />
-              <Bar dataKey="avgScore" name="Average Score Per Member" fill="#82ca9d" />
+              <Bar dataKey="avgScore" name="Average Score Per Member">
+                {sortedByAvg.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#82ca9d'} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
