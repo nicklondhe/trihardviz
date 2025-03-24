@@ -41,18 +41,27 @@ const processData = (results) => {
     const weekColumns = headers.filter(header => 
       /^\d+\/\d+$/.test(header) && !header.includes('Challenge')
     );
+    const challengeColumns = headers.filter(header => 
+      header.includes('Challenge')
+    );
     
     // Process user data
     const userData = data.filter(row => row['Name'] && row['Team Name']).map(row => {
       // Calculate total score across all weeks
       const totalScore = weekColumns.reduce((sum, weekCol) => 
         sum + (parseFloat(row[weekCol]) || 0), 0);
+
+      // Calculate total challenge score
+      const totalChallengeScore = challengeColumns.reduce((sum, challengeCol) => 
+        sum + (parseFloat(row[challengeCol]) || 0), 0);
       
       return {
         name: row['Name'],
         team: row['Team Name'],
         stravaId: row['Strava Id'],
-        totalScore
+        totalScore,
+        totalChallengeScore,
+        combinedScore: totalScore + totalChallengeScore
       };
     });
     
@@ -61,16 +70,18 @@ const processData = (results) => {
       .groupBy('team')
       .map((members, teamName) => {
         const totalScore = _.sumBy(members, 'totalScore');
+        const totalChallengeScore = _.sumBy(members, 'totalChallengeScore');
         
         return {
           teamName,
           memberCount: members.length,
           totalScore,
-          avgScore: totalScore / members.length,
-          topScore: _.maxBy(members, 'totalScore')?.totalScore || 0
+          totalChallengeScore,
+          combinedScore: totalScore + totalChallengeScore,
+          avgScore: totalScore / members.length
         };
       })
-      .orderBy(['totalScore'], ['desc'])
+      .orderBy(['combinedScore'], ['desc'])
       .value();
       
     // Get top performers
@@ -88,75 +99,6 @@ const processData = (results) => {
     return { userData, teamStats, topPerformers };
   };
 
-  /*
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using standard fetch API instead of window.fs.readFile
-        const response = await fetch('/leaderboard.csv');
-        const text = await response.text();
-        
-        Papa.parse(text, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            // Clean the data
-            const cleanData = results.data.filter(row => 
-              row['Name'] && row['Total Score'] !== null && !isNaN(row['Total Score'])
-            );
-            
-            setData(cleanData);
-            
-            // Calculate team statistics
-            const teamData = _(cleanData)
-              .filter(row => row['Team Name'])
-              .groupBy('Team Name')
-              .map((members, teamName) => {
-                const totalScore = _.sumBy(members, 'Total Score');
-                return {
-                  teamName,
-                  memberCount: members.length,
-                  totalScore,
-                  avgScore: totalScore / members.length,
-                  topScore: _.maxBy(members, 'Total Score')['Total Score']
-                };
-              })
-              .orderBy(['totalScore'], ['desc'])
-              .value();
-            setTeamStats(teamData);
-            
-            // Get top performers across all teams
-            const allTopPerformers = _(cleanData)
-              .filter(row => row['Total Score'] > 0)
-              .orderBy(['Total Score'], ['desc'])
-              .take(10)
-              .map(performer => ({
-                name: performer.Name,
-                score: performer['Total Score'],
-                team: performer['Team Name'],
-                minutes: performer['Total Score'] || 0
-              }))
-              .value();
-            
-            setTopPerformers(allTopPerformers);
-            setLoading(false);
-          },
-          error: (error) => {
-            console.error('Error parsing CSV:', error);
-            setLoading(false);
-          }
-        });
-      } catch (error) {
-        console.error('Error reading file:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-*/
 useEffect(() => {
   const fetchData = async () => {
     try {
@@ -193,26 +135,27 @@ useEffect(() => {
 
   // Component for Team Comparison chart
   const TeamComparisonChart = () => (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">Team Total Scores</h2>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={teamStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="teamName" />
-            <YAxis />
-            <Tooltip formatter={(value) => [`${value} points`, 'Total Score']} />
-            <Legend />
-            <Bar dataKey="totalScore" name="Team Total Score">
-              {teamStats.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#8884d8'} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+  <div className="mb-8">
+    <h2 className="text-xl font-bold mb-4">Team Total Scores</h2>
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={teamStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="teamName" />
+          <YAxis />
+          <Tooltip formatter={(value) => [`${value} points`]} />
+          <Legend />
+          <Bar dataKey="totalScore" name="Activity Score" stackId="a">
+            {teamStats.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#8884d8'} />
+            ))}
+          </Bar>
+          <Bar dataKey="totalChallengeScore" name="Challenge Score" stackId="a" fill="#FFD700" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
-  );
+  </div>
+);
 
   // Component for Average Score Per Team
   const AverageScoreChart = () => {
