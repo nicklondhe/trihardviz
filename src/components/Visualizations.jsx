@@ -10,7 +10,6 @@ import {
   YAxis
 } from 'recharts';
 import React, { useEffect, useState } from 'react';
-
 import Papa from 'papaparse';
 import _ from 'lodash';
 
@@ -21,6 +20,8 @@ const TriHardVisualizations = () => {
   const [loading, setLoading] = useState(true);
   const [activeMainTab, setActiveMainTab] = useState('currentWeek');
   const [activeSubTab, setActiveSubTab] = useState('teamComparison');
+  // New state for selected team in the dropdown
+  const [selectedTeam, setSelectedTeam] = useState('');
 
   // Colors for teams
   const TEAM_COLORS = {
@@ -33,7 +34,7 @@ const TriHardVisualizations = () => {
   };
 
   // Process CSV data with updated headers
-const processData = (results) => {
+  const processData = (results) => {
     const data = results.data;
     
     // Find all week columns (dates)
@@ -47,11 +48,8 @@ const processData = (results) => {
     
     // Process user data
     const userData = data.filter(row => row['Name'] && row['Team Name']).map(row => {
-      // Calculate total score across all weeks
       const totalScore = weekColumns.reduce((sum, weekCol) => 
         sum + (parseFloat(row[weekCol]) || 0), 0);
-
-      // Calculate total challenge score
       const totalChallengeScore = challengeColumns.reduce((sum, challengeCol) => 
         sum + (parseFloat(row[challengeCol]) || 0), 0);
       
@@ -99,67 +97,70 @@ const processData = (results) => {
     return { userData, teamStats, topPerformers };
   };
 
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/leaderboard.csv');
-      const text = await response.text();
-      
-      Papa.parse(text, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          // Process data
-          const { userData, teamStats, topPerformers } = processData(results);
-          
-          setData(userData);
-          setTeamStats(teamStats);
-          setTopPerformers(topPerformers);
-          setLoading(false);
-        },
-        error: (error) => {
-          console.error('Error parsing CSV:', error);
-          setLoading(false);
-        }
-      });
-    } catch (error) {
-      console.error('Error reading file:', error);
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/leaderboard.csv');
+        const text = await response.text();
+        
+        Papa.parse(text, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const { userData, teamStats, topPerformers } = processData(results);
+            
+            setData(userData);
+            setTeamStats(teamStats);
+            setTopPerformers(topPerformers);
+            // Set the default selected team to the first team in the data
+            if (userData.length > 0) {
+              const teams = _.uniq(userData.map(d => d.team));
+              setSelectedTeam(teams[0] || '');
+            }
+            setLoading(false);
+          },
+          error: (error) => {
+            console.error('Error parsing CSV:', error);
+            setLoading(false);
+          }
+        });
+      } catch (error) {
+        console.error('Error reading file:', error);
+        setLoading(false);
+      }
+    };
 
-  fetchData();
-}, []);
+    fetchData();
+  }, []);
 
   // Component for Team Comparison chart
   const TeamComparisonChart = () => (
-  <div className="mb-8">
-    <h2 className="text-xl font-bold mb-4">Team Total Scores</h2>
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={teamStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="teamName" />
-          <YAxis />
-          <Tooltip formatter={(value) => [`${value} points`]} />
-          <Legend />
-          <Bar dataKey="totalScore" name="Activity Score" stackId="a">
-            {teamStats.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#8884d8'} />
-            ))}
-          </Bar>
-          <Bar dataKey="totalChallengeScore" name="Challenge Score" stackId="a" fill="#FFD700" />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="mb-8">
+      <h2 className="text-xl font-bold mb-4">Team Total Scores</h2>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={teamStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="teamName" />
+            <YAxis />
+            <Tooltip formatter={(value) => [`${value} points`]} />
+            <Legend />
+            <Bar dataKey="totalScore" name="Activity Score" stackId="a">
+              {teamStats.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#8884d8'} />
+              ))}
+            </Bar>
+            <Bar dataKey="totalChallengeScore" name="Challenge Score" stackId="a" fill="#FFD700" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-  </div>
-);
+  );
 
   // Component for Average Score Per Team
   const AverageScoreChart = () => {
-    // Create a sorted copy for average scores
     const sortedByAvg = _.orderBy(teamStats, ['avgScore'], ['desc']);
     
     return (
@@ -187,7 +188,6 @@ useEffect(() => {
 
   // Component for Top Performers
   const TopPerformersChart = () => {
-    // Create custom bars for the legend to show team colors
     const renderCustomizedLegend = () => {
       const teams = _.uniqBy(topPerformers, 'team').map(p => p.team);
       
@@ -228,7 +228,6 @@ useEffect(() => {
                   return `${name} (${performer?.team || 'Unknown team'})`;
                 }}
               />
-              {/* Use custom shape for the bars to color by team */}
               <Bar dataKey="score" name="Score">
                 {topPerformers.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.team] || '#8884d8'} />
@@ -244,10 +243,7 @@ useEffect(() => {
 
   // Score distribution with team breakdown
   const ScoreDistributionChart = () => {
-    // Find max score to determine bucket ranges
     const maxScore = _.maxBy(data, 'totalScore')?.totalScore || 0;
-    
-    // Create dynamic buckets
     const bucketSize = Math.ceil(maxScore / 6);
     const bucketRanges = [];
     
@@ -261,14 +257,9 @@ useEffect(() => {
       });
     }
 
-    // Group data by team and bucket
     const teams = _.uniq(data.map(d => d.team));
-    
-    // Create stacked data structure
     const buckets = bucketRanges.map(bucket => {
       const result = { range: bucket.range };
-      
-      // Count for each team in this bucket
       teams.forEach(team => {
         result[team] = data.filter(
           d => d.team === team && 
@@ -276,7 +267,6 @@ useEffect(() => {
           d.totalScore < bucket.upperBound
         ).length;
       });
-      
       return result;
     });
 
@@ -306,9 +296,65 @@ useEffect(() => {
       </div>
     );
   };
-  
 
-  // Two-level tab navigation with just current week tabs implemented
+  // New Component for Individual Performance by Team
+  const IndividualPerformanceChart = () => {
+    // Get unique teams for the dropdown
+    const teams = _.uniq(data.map(d => d.team)).sort();
+
+    // Filter data for the selected team and sort by totalScore
+    const filteredData = data
+      .filter(d => d.team === selectedTeam)
+      .map(d => ({
+        name: d.name,
+        score: d.totalScore,
+        team: d.team
+      }))
+      .sort((a, b) => b.score - a.score); // Sort descending by score
+
+    return (
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Individual Performance by Team</h2>
+        
+        {/* Dropdown for team selection */}
+        <div className="mb-4">
+          <label htmlFor="team-select" className="mr-2 font-medium">Select Team:</label>
+          <select
+            id="team-select"
+            value={selectedTeam}
+            onChange={(e) => setSelectedTeam(e.target.value)}
+            className="p-2 border rounded"
+          >
+            {teams.map(team => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Bar chart for individual performance */}
+        <div style={{ width: '100%', height: `${Math.max(filteredData.length * 40, 400)}px` }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={filteredData}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" label={{ value: 'Score (points)', position: 'insideBottom', offset: -5 }} />
+              <YAxis dataKey="name" type="category" width={110} />
+              <Tooltip 
+                formatter={(value) => [`${value} points`, 'Score']}
+                labelFormatter={(name) => `${name} (${selectedTeam})`}
+              />
+              <Bar dataKey="score" name="Score" fill={TEAM_COLORS[selectedTeam] || '#8884d8'} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  };
+
+  // Two-level tab navigation with new sub-tab
   const TwoLevelTabNavigation = ({ activeMainTab, setActiveMainTab, activeSubTab, setActiveSubTab }) => {
     const mainTabs = [
       { id: 'currentWeek', label: 'Leaderboards' },
@@ -320,46 +366,47 @@ useEffect(() => {
         { id: 'teamComparison', label: 'Team Scores' },
         { id: 'averageScores', label: 'Average Scores' },
         { id: 'topPerformers', label: 'Top Performers' },
-        { id: 'distribution', label: 'Score Distribution' }
+        { id: 'distribution', label: 'Score Distribution' },
+        { id: 'individualPerformance', label: 'Individual Performance' } // New sub-tab
       ],
-      trends: [] // Empty for now, will populate later
+      trends: []
     };
 
     return (
       <div className="mb-6 w-full">
-      {/* Main tabs - full width */}
-      <div className="grid grid-cols-2 w-full bg-gray-100 p-2 rounded-t-lg">
-        {mainTabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveMainTab(tab.id);
-              if (subTabs[tab.id].length > 0) {
-                setActiveSubTab(subTabs[tab.id][0].id);
-              }
-            }}
-            className={activeMainTab === tab.id ? 'active-tab' : 'inactive-tab'}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      
-      {/* Sub tabs - full width with clear highlighting */}
-      {subTabs[activeMainTab].length > 0 && (
-        <div className="grid grid-cols-4 w-full bg-white border-b border-gray-300">
-          {subTabs[activeMainTab].map(tab => (
+        {/* Main tabs - full width */}
+        <div className="grid grid-cols-2 w-full bg-gray-100 p-2 rounded-t-lg">
+          {mainTabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveSubTab(tab.id)}
-              className={activeSubTab === tab.id ? 'active-tab' : 'inactive-tab'}
+              onClick={() => {
+                setActiveMainTab(tab.id);
+                if (subTabs[tab.id].length > 0) {
+                  setActiveSubTab(subTabs[tab.id][0].id);
+                }
+              }}
+              className={activeMainTab === tab.id ? 'active-tab' : 'inactive-tab'}
             >
               {tab.label}
             </button>
           ))}
         </div>
-      )}
-    </div>
+        
+        {/* Sub tabs - full width with clear highlighting */}
+        {subTabs[activeMainTab].length > 0 && (
+          <div className="grid grid-cols-5 w-full bg-white border-b border-gray-300">
+            {subTabs[activeMainTab].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSubTab(tab.id)}
+                className={activeSubTab === tab.id ? 'active-tab' : 'inactive-tab'}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -367,9 +414,8 @@ useEffect(() => {
     return <div className="p-4">Loading data...</div>;
   } else {
     return (
-        <div className="p-4">
-        
-       <TwoLevelTabNavigation 
+      <div className="p-4">
+        <TwoLevelTabNavigation 
           activeMainTab={activeMainTab}
           setActiveMainTab={setActiveMainTab}
           activeSubTab={activeSubTab}
@@ -383,6 +429,7 @@ useEffect(() => {
               {activeSubTab === 'averageScores' && <AverageScoreChart />}
               {activeSubTab === 'topPerformers' && <TopPerformersChart />}
               {activeSubTab === 'distribution' && <ScoreDistributionChart />}
+              {activeSubTab === 'individualPerformance' && <IndividualPerformanceChart />}
             </>
           )}
           
@@ -394,13 +441,11 @@ useEffect(() => {
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
-            <p>Data last updated: {new Date().toLocaleDateString()}</p>
+          <p>Data last updated: {new Date().toLocaleDateString()}</p>
         </div>
-        </div>
+      </div>
     );
   }
 };
 
 export default TriHardVisualizations;
-
-  
