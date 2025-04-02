@@ -407,7 +407,7 @@ const TriHardVisualizations = () => {
 
         {/* Bar chart for individual performance */}
         <div style={{ width: '100%', height: `${Math.max(filteredData.length * 40, 400)}px` }}>
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={filteredData}
               layout="vertical"
