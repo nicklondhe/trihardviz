@@ -1,13 +1,3 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts';
 import React, { useEffect, useState } from 'react';
 
 import AverageScoreChart from './AverageScore';
@@ -16,6 +6,8 @@ import Papa from 'papaparse';
 import ScoreDistributionChart from './ScoreDistribution';
 import TeamComparisonChart from './TeamComparison';
 import TeamPerformanceChart from './TeamPerformance';
+import TeamPerformanceTrend from './TeamPerformanceTrend';
+import TopPerformersChart from './TopPerfomers';
 import _ from 'lodash';
 
 const TriHardVisualizations = () => {
@@ -203,62 +195,6 @@ const TriHardVisualizations = () => {
 
     fetchData();
   }, []);
-  
-
-  // Component for Top Performers
-  const TopPerformersChart = () => {
-    const renderCustomizedLegend = () => {
-      const teams = _.uniqBy(topPerformers, 'team').map(p => p.team);
-      
-      return (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-          {teams.map((team) => (
-            <div key={team} style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
-              <div style={{ 
-                width: '15px', 
-                height: '15px', 
-                backgroundColor: TEAM_COLORS[team] || '#8884d8',
-                marginRight: '5px'
-              }} />
-              <span>{team}</span>
-            </div>
-          ))}
-        </div>
-      );
-    };
-    
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Top 10 Performers</h2>
-        <div style={{ width: '100%', height: '500px' }}>
-          <ResponsiveContainer width="100%" height={450}>
-            <BarChart
-              data={topPerformers}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip 
-                formatter={(value, name) => [`${value} points`, name]}
-                labelFormatter={(name) => {
-                  const performer = topPerformers.find(p => p.name === name);
-                  return `${name} (${performer?.team || 'Unknown team'})`;
-                }}
-              />
-              <Bar dataKey="score" name="Score">
-                {topPerformers.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.team] || '#8884d8'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          {renderCustomizedLegend()}
-        </div>
-      </div>
-    );
-  };
 
   // Two-level tab navigation with new sub-tab
   const TwoLevelTabNavigation = ({ activeMainTab, setActiveMainTab, activeSubTab, setActiveSubTab }) => {
@@ -273,10 +209,11 @@ const TriHardVisualizations = () => {
         { id: 'averageScores', label: 'Average Scores' },
         { id: 'topPerformers', label: 'Top Performers' },
         { id: 'distribution', label: 'Score Distribution' },
-        { id: 'individualPerformance', label: 'Individual Performance' } // New sub-tab
+        { id: 'individualPerformance', label: 'Individual Performance' }
       ],
       trends: [
-        { id: 'teamOverTime', label: 'Team performance over time' }
+        { id: 'teamOverTime', label: 'Team performance over time' },
+        { id: 'teamPerfTrends', label: 'Team performance trends'}
       ]
     };
 
@@ -335,7 +272,7 @@ const TriHardVisualizations = () => {
             <>
               {activeSubTab === 'teamComparison' && <TeamComparisonChart teamStats={teamStats} TEAM_COLORS={TEAM_COLORS}/>}
               {activeSubTab === 'averageScores' && <AverageScoreChart teamStats={teamStats} TEAM_COLORS={TEAM_COLORS}/>}
-              {activeSubTab === 'topPerformers' && <TopPerformersChart />}
+              {activeSubTab === 'topPerformers' && <TopPerformersChart topPerformers={topPerformers} TEAM_COLORS={TEAM_COLORS}/>}
               {activeSubTab === 'distribution' && <ScoreDistributionChart data={data} TEAM_COLORS={TEAM_COLORS}/>}
               {activeSubTab === 'individualPerformance' && <IndividualPerformanceChart data={data} TEAM_COLORS={TEAM_COLORS}/>}
             </>
@@ -345,6 +282,7 @@ const TriHardVisualizations = () => {
             <div className="p-8 text-center text-gray-500">
               <>
                 {activeSubTab === 'teamOverTime' && <TeamPerformanceChart teamWeeklyStats={teamWeeklyStats} TEAM_COLORS={TEAM_COLORS}/>}
+                {activeSubTab === 'teamPerfTrends' && <TeamPerformanceTrend teamWeeklyStats={teamWeeklyStats}/>}
               </>
             </div>
           )}
