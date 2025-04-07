@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
+import ActiveMembersChart from './ActiveMembers';
 import AverageScoreChart from './AverageScore';
 import IndividualPerformanceChart from './IndividualPerformance';
 import Papa from 'papaparse';
 import ScoreDistributionChart from './ScoreDistribution';
 import TeamComparisonChart from './TeamComparison';
 import TeamPerformanceChart from './TeamPerformance';
-import TeamPerformanceTrend from './TeamPerformanceTrend';
 import TopPerformersChart from './TopPerfomers';
 import _ from 'lodash';
 
@@ -213,7 +213,7 @@ const TriHardVisualizations = () => {
       ],
       trends: [
         { id: 'teamOverTime', label: 'Team performance over time' },
-        { id: 'teamPerfTrends', label: 'Team performance trends'}
+        { id: 'activeMembers', label: 'Active Members'}
       ]
     };
 
@@ -282,7 +282,7 @@ const TriHardVisualizations = () => {
             <div className="p-8 text-center text-gray-500">
               <>
                 {activeSubTab === 'teamOverTime' && <TeamPerformanceChart teamWeeklyStats={teamWeeklyStats} TEAM_COLORS={TEAM_COLORS}/>}
-                {activeSubTab === 'teamPerfTrends' && <TeamPerformanceTrend teamWeeklyStats={teamWeeklyStats}/>}
+                {activeSubTab === 'activeMembers' && <ActiveMembersChart teamWeeklyStats={teamWeeklyStats} TEAM_COLORS={TEAM_COLORS}/>}
               </>
             </div>
           )}
