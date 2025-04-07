@@ -1,19 +1,13 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts';
 import React, { useEffect, useState } from 'react';
 
+import ActiveMembersChart from './ActiveMembers';
+import AverageScoreChart from './AverageScore';
+import IndividualPerformanceChart from './IndividualPerformance';
 import Papa from 'papaparse';
+import ScoreDistributionChart from './ScoreDistribution';
+import TeamComparisonChart from './TeamComparison';
+import TeamPerformanceChart from './TeamPerformance';
+import TopPerformersChart from './TopPerfomers';
 import _ from 'lodash';
 
 const TriHardVisualizations = () => {
@@ -25,8 +19,6 @@ const TriHardVisualizations = () => {
   const [loading, setLoading] = useState(true);
   const [activeMainTab, setActiveMainTab] = useState('currentWeek');
   const [activeSubTab, setActiveSubTab] = useState('teamComparison');
-  // New state for selected team in the dropdown
-  const [selectedTeam, setSelectedTeam] = useState('');
 
   // Colors for teams
   const TEAM_COLORS = {
@@ -188,11 +180,6 @@ const TriHardVisualizations = () => {
             setTopPerformers(topPerformers);
             setUserWeeklyStats(userWeeklyStats);
             setTeamWeeklyStats(teamWeeklyStats);
-            // Set the default selected team to the first team in the data
-            if (userData.length > 0) {
-              const teams = _.uniq(userData.map(d => d.team));
-              setSelectedTeam(teams[0] || '');
-            }
             setLoading(false);
           },
           error: (error) => {
@@ -209,286 +196,6 @@ const TriHardVisualizations = () => {
     fetchData();
   }, []);
 
-  // Component for Team Comparison chart
-  const TeamComparisonChart = () => (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">Team Total Scores</h2>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={teamStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="teamName" />
-            <YAxis />
-            <Tooltip formatter={(value) => [`${value} points`]} />
-            <Legend />
-            <Bar dataKey="totalScore" name="Activity Score" stackId="a">
-              {teamStats.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#8884d8'} />
-              ))}
-            </Bar>
-            <Bar dataKey="totalChallengeScore" name="Challenge Score" stackId="a" fill="#FFD700" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-
-  // Component for Average Score Per Team
-  const AverageScoreChart = () => {
-    const sortedByAvg = _.orderBy(teamStats, ['avgScore'], ['desc']);
-    
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Average Score Per Team</h2>
-        <div style={{ width: '100%', height: '400px' }}>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={sortedByAvg} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="teamName" />
-              <YAxis />
-              <Tooltip formatter={(value) => [`${value.toFixed(1)} points`, 'Average Score']} />
-              <Legend />
-              <Bar dataKey="avgScore" name="Average Score Per Member">
-                {sortedByAvg.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.teamName] || '#82ca9d'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    );
-  };
-
-  // Component for Top Performers
-  const TopPerformersChart = () => {
-    const renderCustomizedLegend = () => {
-      const teams = _.uniqBy(topPerformers, 'team').map(p => p.team);
-      
-      return (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-          {teams.map((team) => (
-            <div key={team} style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
-              <div style={{ 
-                width: '15px', 
-                height: '15px', 
-                backgroundColor: TEAM_COLORS[team] || '#8884d8',
-                marginRight: '5px'
-              }} />
-              <span>{team}</span>
-            </div>
-          ))}
-        </div>
-      );
-    };
-    
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Top 10 Performers</h2>
-        <div style={{ width: '100%', height: '500px' }}>
-          <ResponsiveContainer width="100%" height={450}>
-            <BarChart
-              data={topPerformers}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip 
-                formatter={(value, name) => [`${value} points`, name]}
-                labelFormatter={(name) => {
-                  const performer = topPerformers.find(p => p.name === name);
-                  return `${name} (${performer?.team || 'Unknown team'})`;
-                }}
-              />
-              <Bar dataKey="score" name="Score">
-                {topPerformers.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={TEAM_COLORS[entry.team] || '#8884d8'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          {renderCustomizedLegend()}
-        </div>
-      </div>
-    );
-  };
-
-  // Score distribution with team breakdown
-  const ScoreDistributionChart = () => {
-    const maxScore = _.maxBy(data, 'totalScore')?.totalScore || 0;
-    const bucketSize = Math.ceil(maxScore / 6);
-    const bucketRanges = [];
-    
-    for (let i = 0; i < 6; i++) {
-      const lowerBound = i * bucketSize;
-      const upperBound = (i + 1) * bucketSize;
-      bucketRanges.push({
-        range: i === 5 ? `${lowerBound}+` : `${lowerBound}-${upperBound}`,
-        lowerBound,
-        upperBound: i === 5 ? Infinity : upperBound
-      });
-    }
-
-    const teams = _.uniq(data.map(d => d.team));
-    const buckets = bucketRanges.map(bucket => {
-      const result = { range: bucket.range };
-      teams.forEach(team => {
-        result[team] = data.filter(
-          d => d.team === team && 
-          d.totalScore >= bucket.lowerBound && 
-          d.totalScore < bucket.upperBound
-        ).length;
-      });
-      return result;
-    });
-
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Score Distribution by Team</h2>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={buckets} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="range" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              {teams.map((team, index) => (
-                <Bar 
-                  key={team} 
-                  dataKey={team} 
-                  name={team} 
-                  stackId="a"
-                  fill={TEAM_COLORS[team] || `#${Math.floor(Math.random()*16777215).toString(16)}`} 
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    );
-  };
-
-  // Component for Individual Performance by Team
-  const IndividualPerformanceChart = () => {
-    // Get unique teams for the dropdown
-    const teams = _.uniq(data.map(d => d.team)).sort();
-
-    // Filter data for the selected team and sort by totalScore
-    const filteredData = data
-      .filter(d => d.team === selectedTeam)
-      .map(d => ({
-        name: d.name,
-        score: d.totalScore,
-        team: d.team
-      }))
-      .sort((a, b) => b.score - a.score); // Sort descending by score
-
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Individual Performance by Team</h2>
-        
-        {/* Dropdown for team selection */}
-        <div className="mb-4">
-          <label htmlFor="team-select" className="mr-2 font-medium">Select Team:</label>
-          <select
-            id="team-select"
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
-            className="p-2 border rounded"
-          >
-            {teams.map(team => (
-              <option key={team} value={team}>{team}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Bar chart for individual performance */}
-        <div style={{ width: '100%', height: `${Math.max(filteredData.length * 40, 400)}px` }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={filteredData}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" label={{ value: 'Score (points)', position: 'insideBottom', offset: -5 }} />
-              <YAxis dataKey="name" type="category" width={110} />
-              <Tooltip 
-                formatter={(value) => [`${value} points`, 'Score']}
-                labelFormatter={(name) => `${name} (${selectedTeam})`}
-              />
-              <Bar dataKey="score" name="Score" fill={TEAM_COLORS[selectedTeam] || '#8884d8'} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    );
-  };
-
-  //Team performance over time
-  const TeamPerformanceChart = () => {
-    // Transform the data for the chart
-    const allWeeks = _(Object.values(teamWeeklyStats))
-      .flatMap()
-      .map(week => ({ weekNum: week.weekNum, weekDate: week.weekDate }))
-      .uniqBy('weekNum')
-      .orderBy('weekNum')
-      .value();
-
-    const startWeek = { weekNum: 0, weekDate: "Start" };
-  
-    // Transform data for chart - one line per team
-    const chartData = [startWeek, ...allWeeks].map(week => {
-      const dataPoint = {
-        weekLabel: week.weekNum === 0 ? "Start" : `Week ${week.weekNum} (${week.weekDate})`,
-        weekNum: week.weekNum,
-      };
-      
-      // Add each team's score for this week
-      Object.keys(teamWeeklyStats).forEach(teamName => {
-        if (week.weekNum === 0) {
-          dataPoint[teamName] = 0; // Zero value for week 0
-        } else {
-          const teamWeek = teamWeeklyStats[teamName].find(w => w.weekNum === week.weekNum);
-          dataPoint[teamName] = teamWeek ? teamWeek.teamWeeklyScore : 0;
-        }
-      });
-      
-      return dataPoint;
-    });
-  
-    return (
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Team Performance Over Time</h2>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="weekLabel" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              {Object.keys(teamWeeklyStats).map((teamName, index) => (
-                <Line 
-                  key={teamName}
-                  type="linear" 
-                  dataKey={teamName} 
-                  name={teamName}
-                  stroke={TEAM_COLORS[teamName] || '#000000'} 
-                  strokeWidth={3}
-                  activeDot={{ r: 8 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-       </div>
-    );
-  };
-
   // Two-level tab navigation with new sub-tab
   const TwoLevelTabNavigation = ({ activeMainTab, setActiveMainTab, activeSubTab, setActiveSubTab }) => {
     const mainTabs = [
@@ -502,10 +209,11 @@ const TriHardVisualizations = () => {
         { id: 'averageScores', label: 'Average Scores' },
         { id: 'topPerformers', label: 'Top Performers' },
         { id: 'distribution', label: 'Score Distribution' },
-        { id: 'individualPerformance', label: 'Individual Performance' } // New sub-tab
+        { id: 'individualPerformance', label: 'Individual Performance' }
       ],
       trends: [
-        { id: 'teamOverTime', label: 'Team performance over time' }
+        { id: 'teamOverTime', label: 'Team performance over time' },
+        { id: 'activeMembers', label: 'Active Members'}
       ]
     };
 
@@ -562,18 +270,19 @@ const TriHardVisualizations = () => {
         <div className="border rounded-lg p-4 bg-white shadow">
           {activeMainTab === 'currentWeek' && (
             <>
-              {activeSubTab === 'teamComparison' && <TeamComparisonChart />}
-              {activeSubTab === 'averageScores' && <AverageScoreChart />}
-              {activeSubTab === 'topPerformers' && <TopPerformersChart />}
-              {activeSubTab === 'distribution' && <ScoreDistributionChart />}
-              {activeSubTab === 'individualPerformance' && <IndividualPerformanceChart />}
+              {activeSubTab === 'teamComparison' && <TeamComparisonChart teamStats={teamStats} TEAM_COLORS={TEAM_COLORS}/>}
+              {activeSubTab === 'averageScores' && <AverageScoreChart teamStats={teamStats} TEAM_COLORS={TEAM_COLORS}/>}
+              {activeSubTab === 'topPerformers' && <TopPerformersChart topPerformers={topPerformers} TEAM_COLORS={TEAM_COLORS}/>}
+              {activeSubTab === 'distribution' && <ScoreDistributionChart data={data} TEAM_COLORS={TEAM_COLORS}/>}
+              {activeSubTab === 'individualPerformance' && <IndividualPerformanceChart data={data} TEAM_COLORS={TEAM_COLORS}/>}
             </>
           )}
           
           {activeMainTab === 'trends' && (
             <div className="p-8 text-center text-gray-500">
               <>
-                {activeSubTab === 'teamOverTime' && <TeamPerformanceChart />}
+                {activeSubTab === 'teamOverTime' && <TeamPerformanceChart teamWeeklyStats={teamWeeklyStats} TEAM_COLORS={TEAM_COLORS}/>}
+                {activeSubTab === 'activeMembers' && <ActiveMembersChart teamWeeklyStats={teamWeeklyStats} TEAM_COLORS={TEAM_COLORS}/>}
               </>
             </div>
           )}
